@@ -1,57 +1,78 @@
 function calculateAge() {
-    const day = document.getElementById("day").value;
-    const month = document.getElementById("month").value;
-    const year = document.getElementById("year").value;
-
+    const dateOfBirthInput = document.getElementById("dateOfBirth");
+    const dateOfBirth = dateOfBirthInput.value;
     const resultDiv = document.getElementById("result");
 
-    // Clear previous results
     resultDiv.innerHTML = "";
+    clearErrorMessages();
 
-    const dateValidationMessage = getDateValidationMessage(day, month, year);
-    if (dateValidationMessage) {
-        resultDiv.innerText = dateValidationMessage;
+    if (!dateOfBirth) {
+        showError("Please select your date of birth.", dateOfBirthInput);
         return;
     }
 
-    const birthDate = new Date(year, month - 1, day);
+    const birthDate = new Date(dateOfBirth);
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
+
+    if (isNaN(birthDate.getTime())) {
+        showError("Invalid date format. Please use MM-DD-YYYY.", dateOfBirthInput);
+        return;
     }
 
-    resultDiv.innerText = `Your age is ${age} years.`;
+    if (birthDate >= today) {
+        showError("Date of birth cannot be in the future.", dateOfBirthInput);
+        return;
+    }
+
+    const ageData = calculateDetailedAge(birthDate, today);
+
+    resultDiv.innerText = `Your age is ${ageData.years} years, ${ageData.months} months, and ${ageData.days} days.`;
 }
 
-function getDateValidationMessage(day, month, year) {
-    if (!day || !month || !year) {
-        return "All fields are required.";
+function calculateDetailedAge(birthDate, today) {
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    let days = today.getDate() - birthDate.getDate();
+
+    if (days < 0) {
+        months--;
+        days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
     }
 
-    if (month < 1 || month > 12) {
-        return "Invalid month. Please enter a value between 1 and 12.";
+    if (months < 0) {
+        years--;
+        months += 12;
     }
 
-    const daysInMonth = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-    if (day < 1 || day > daysInMonth[month - 1]) {
-        return `Invalid day for the selected month. Please enter a value between 1 and ${daysInMonth[month - 1]}.`;
-    }
-
-    if (year < 1900 || year > new Date().getFullYear()) {
-        return `Invalid year. Please enter a value between 1900 and ${new Date().getFullYear()}.`;
-    }
-
-    return null;
-}
-
-function isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    return { years, months, days };
 }
 
 function resetForm() {
-    document.getElementById("ageForm").reset();
-    document.getElementById("result").innerHTML = "";
+    const confirmation = confirm("Are you sure you want to clear the form?");
+    if (confirmation) {
+        const dateOfBirthInput = document.getElementById("dateOfBirth");
+        dateOfBirthInput.value = "";
+        dateOfBirthInput.classList.remove("error");
+
+        document.getElementById("ageForm").reset();
+        document.getElementById("result").innerHTML = "";
+        clearErrorMessages();
+    }
+}
+
+function showError(message, inputElement) {
+    const errorDiv = document.createElement("div");
+    errorDiv.classList.add("error-message");
+    errorDiv.textContent = message;
+
+    inputElement.classList.add("error");
+    inputElement.parentNode.appendChild(errorDiv);
+}
+
+function clearErrorMessages() {
+    const errorMessages = document.querySelectorAll(".error-message");
+    errorMessages.forEach(msg => msg.remove());
+
+    const errorInputs = document.querySelectorAll(".error");
+    errorInputs.forEach(input => input.classList.remove("error"));
 }
